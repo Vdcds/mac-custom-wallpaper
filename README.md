@@ -15,7 +15,7 @@ cd mac-custom-wallpaper
 open ".build/Wake Scenes.app"
 ```
 
-The build script creates `.build/Wake Scenes.app` for the Mac's current architecture and signs it locally. The delivered build is for Apple silicon. It has no package dependencies and needs no network connection.
+The build script creates `.build/Wake Scenes.app` for the Mac's current architecture and signs it locally. The delivered build is for Apple silicon. It has no package dependencies. Local playback works offline; repository imports need a network connection.
 
 To use launch at login, quit the app, copy it to Applications, and open that copy. Enable **Launch at login** in the library. If macOS requests approval, use the app's **Open Settings** button. Keep the installed copy at the same path. This local build is ad-hoc signed, not notarized for distribution.
 
@@ -34,6 +34,23 @@ Import support depends on the codecs macOS can decode, rather than a fixed exten
 
 Imported videos are copies. Moving or deleting the source does not affect the library. Importing the same bytes again does not add a duplicate. Removing a scene deletes the imported copy and cached still, while preserving the original video.
 
+## Import from a repository
+
+1. Open the library and click **From GitHub…**.
+2. Paste a public GitHub repository link and click **Find wallpapers**. Branch, folder, and video file links also work.
+3. Select the videos you want. The list shows file paths, download sizes, and matching stills. Only the first video is selected initially.
+4. Click **Import & use**. The first selected scene plays once, and every completed import stays in your local library.
+
+For example, paste `https://github.com/yamz8/omarchy-flight-15-theme` for Flight 15, or `https://github.com/omacom/omarchy/tree/quattro/themes/lumon` for a theme inside Omarchy's main repository.
+
+The importer finds videos recursively. It pairs `backgrounds/intros/name.mp4` with `backgrounds/name.webp` (or another supported image format), and standalone videos with matching images in their own folder. Without a matching image, it extracts the video's final usable frame. Matching images are saved as PNG at their source dimensions. Videos are copied without transcoding, so their quality depends on the original footage.
+
+Downloads are pinned to the scanned commit. Source links appear in the library, and available repository notices, licenses, and the root README are kept under `Source Packs/GitHub` in the app's data folder. Git LFS media is downloaded and checked against its declared size and SHA-256 hash. The displayed size for an LFS pointer can be smaller than the final media. Downloads have a 2 GB video limit and an 8 GB video total per import.
+
+Reimporting a video keeps its existing local copy. If that copy has no paired repository poster yet, the importer adds it. Existing posters are preserved.
+
+Only media files are imported. Theme scripts and Linux desktop effects are not run. Image-only themes, videos hosted only in release assets or external links, private repositories, and hosts other than GitHub need a local video import instead. A supported filename does not guarantee that macOS can decode its codec. Canceling keeps completed imports and removes temporary downloads. Imported scenes work offline afterward.
+
 ## Lock and unlock
 
 While locked, the selected still remains installed as the system wallpaper. After a successful unlock, the app waits briefly for the lock screen to clear and plays the selected intro once. Touch ID works the same way as a password. Locking during playback stops the intro and settles on the still. An unsuccessful authentication does not start playback.
@@ -44,7 +61,7 @@ The app listens for session unlock. It does not read or validate passwords. macO
 
 The selected still is installed as your actual macOS system wallpaper. In **System Settings → Wallpaper**, enable **Show on all Spaces** to use it on every desktop and display, including Mission Control thumbnails. macOS can turn this setting off after an application selects a different image, so check it again after choosing another scene.
 
-Desktop windows remain in place during Space changes. They fill the screen and render at its native Retina scale. Original-resolution PNG stills are retained. The local Flight 15 library can use its original lossless high-resolution posters instead of video-compressed ending frames.
+Desktop windows remain in place during Space changes. They fill the screen and render at its native Retina scale. Original-resolution PNG stills are retained. Repository imports use matching posters when available. A 4K file can still contain soft, compressed, interpolated, or upscaled source detail; importing it cannot recover missing detail.
 
 ## Stop and quit
 
@@ -63,6 +80,8 @@ Run the app verification from a logged-in, unlocked graphical session. `ffmpeg` 
 `./scripts/test-lifecycle.sh` runs 13 focused event-state checks without changing the desktop. The full script runs those checks, builds the app, and runs H.264 and portrait HEVC tests in separate libraries under `artifacts/`. Each run writes `run.log` and `library/verification.json`. It posts synthetic sleep and wake notifications inside the test process; it does not sleep or lock your Mac.
 
 See [verification results and remaining manual tests](docs/VERIFICATION.md) and [lifecycle behavior and storage](docs/BEHAVIOR.md).
+
+`./scripts/test-repository.sh` runs offline repository parsing and download-failure checks. `./scripts/verify-repository.sh` additionally downloads real media from public repositories and exercises import, playback, still handoff, provenance, and persistence in an isolated app library. It requires network access and an unlocked graphical session. Its playback check uses desktop windows without changing the native system wallpaper. The app verification writes its report under `artifacts/`.
 
 ## Credits and license
 

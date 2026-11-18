@@ -17,7 +17,7 @@ final class AppModel: ObservableObject {
     let engine = WallpaperEngine()
     let systemWallpaper: SystemWallpaper
     let wake = WakeMonitor()
-    private var storageWritable = true
+    private(set) var storageWritable = true
     var selected: Scene? { state.scenes.first { $0.id == state.selectedID } }
     var onStateChange: (() -> Void)?
     var onBeforeReplay: (() -> Void)?
@@ -160,6 +160,7 @@ struct LibraryView: View {
                 Image(systemName: "arrow.down.doc")
                 Text(model.busy ? model.status : "Drop videos here, or import a scene")
                 Spacer()
+                Button("From GitHub…") { viewState.showRepository = true }.disabled(model.busy)
                 Button("Import…", action: importPanel).disabled(model.busy)
             }
             .padding(16)
@@ -182,6 +183,9 @@ struct LibraryView: View {
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text(scene.name).font(.headline).lineLimit(1)
                                     Text(String(format: "%.1f sec · %@", scene.duration, ByteCountFormatter.string(fromByteCount: scene.bytes, countStyle: .file))).font(.caption).foregroundStyle(.secondary)
+                                    if let source = scene.source {
+                                        Link("View source on GitHub", destination: source.videoURL).font(.caption)
+                                    }
                                 }
                                 Spacer(minLength: 8)
                                 if scene.id == model.state.selectedID {
@@ -237,6 +241,7 @@ struct LibraryView: View {
             Button("Remove imported copy", role: .destructive) { if let scene = viewState.removing { model.remove(scene) }; viewState.removing = nil }
         } message: { Text("Your original video will stay where it is.") }
         .onAppear { model.refreshLogin() }
+        .sheet(isPresented: $viewState.showRepository) { RepositoryImportView(model: model) }
     }
     private func importPanel() {
         let panel = NSOpenPanel()
@@ -252,6 +257,7 @@ struct LibraryView: View {
 }
 
 private final class LibraryViewState: ObservableObject {
+    @Published var showRepository = false
     @Published var targeted = false
     @Published var removing: Scene?
 }

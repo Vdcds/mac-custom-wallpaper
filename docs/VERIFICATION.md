@@ -19,7 +19,7 @@ Additional native UI checks confirmed import through NSOpenPanel, scene selectio
 
 The native wallpaper update additionally installed the selected Top Down Exhaust poster at 4096×2304. All 12 local Flight 15 scenes received their original high-resolution stills. System Settings showed Show on all Spaces enabled. A read-only inspection of WallpaperAgent's store found the selected image in the shared entry and zero individual Space overrides. Quitting the actual app left that native wallpaper installed with no WakeScenes process running. Live Space-navigation automation was unavailable, so no visual transition test is claimed.
 
-The app's local code signature passed `codesign --verify --deep --strict`. The generated Apple silicon bundle is about 5.5 MB. No sample footage or codec library ships inside it.
+The app's local code signature passed `codesign --verify --deep --strict`. No sample footage or codec library ships inside the generated Apple silicon bundle.
 
 ## Scene picker update
 
@@ -32,6 +32,16 @@ Native UI verification confirmed arrow navigation, Escape without applying the h
 The focused lifecycle regression failed before the change at “lock and successful unlock replay without any sleep.” All 13 checks in `./scripts/test-lifecycle.sh` now pass. They cover lock-only unlock, unsuccessful authentication retaining the locked state, debounce, duplicate signals, missed wake signals, session reactivation, canceled cycles, and successive real cycles.
 
 The full H.264 and HEVC runs also lock the monitor during real playback, observe decoder release to a still, inject a successful unlock, and verify that AVPlayer starts exactly one intro. These are synthetic event tests. A physical password or Touch ID unlock has not been performed by the agent.
+
+## GitHub repository importer
+
+`./scripts/test-repository.sh` passed 30 offline checks covering URL validation, recursive scene discovery, Omarchy intro pairing, folder and file scopes, source links, legacy library decoding, HTTP rate-limit messages, incomplete trees and downloads, Git LFS resolution and checksums, cleanup after failure, and cancellation.
+
+`./scripts/verify-repository.sh` passed 18 checks in the running native app using public GitHub repositories. It found Flight 15's twelve intro/still pairs, imported its Caught at the Tower scene and a Lumon scene from Omarchy's main repository, and reported a real image-only theme without inventing a video. The imported Flight 15 movie matched its pinned Git blob byte for byte. Its paired poster remained at its original pixel dimensions, and a video first imported locally could gain its matching repository poster. Repository notices, provenance, deduplication, partial failure, cancellation, selected-scene persistence, real muted playback, and the handoff to a still with decoder release passed. The test used isolated storage and disabled the native wallpaper-install callback during playback.
+
+The retained [repository report](verification/repository.json) records the source commits. Git LFS failure paths use controlled offline responses; a live Git LFS repository has not been tested.
+
+Native UI verification pasted the Lumon folder link into **From GitHub…**, found both videos with their matching stills, and used **Import & use**. The sheet closed, the scene appeared on the desktop, and the library reported the settled still state. The new scene remained in the library. The previously selected Flight 15 scene was restored afterward, and **Show on all Spaces** was re-enabled. The H.264 and HEVC app verification runs also passed all 36 checks each after the importer was added.
 
 ## Complete the physical checks
 

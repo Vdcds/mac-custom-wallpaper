@@ -9,6 +9,7 @@ struct Scene: Codable, Identifiable, Equatable {
     let duration: Double
     let stillTime: Double
     let bytes: Int64
+    var source: SceneSource? = nil
 }
 
 struct LibraryState: Codable {
@@ -43,7 +44,8 @@ struct LibraryDisk {
         try JSONEncoder().encode(state).write(to: manifest, options: .atomic)
     }
 
-    func ingest(_ source: URL) async throws -> Scene {
+    func ingest(_ source: URL, poster: URL? = nil, origin: SceneSource? = nil) async throws -> Scene {
+        try Task.checkCancellation()
         let fm = FileManager.default
         let staging = root.appendingPathComponent(".import-\(UUID().uuidString)")
         try fm.createDirectory(at: staging, withIntermediateDirectories: true)
@@ -88,22 +90,42 @@ struct LibraryDisk {
                 }
             }
             guard let frame else { throw ImportFailure(message: "macOS couldn’t decode a usable final frame.") }
+            try Task.checkCancellation()
             let bitmap = NSBitmapImageRep(cgImage: frame)
             guard let png = bitmap.representation(using: .png, properties: [:]) else {
                 throw ImportFailure(message: "Couldn’t save the final frame.")
             }
             try png.write(to: staging.appendingPathComponent("still.png"))
+            if let poster {
+                guard let source = CGImageSourceCreateWithURL(poster as CFURL, nil),
+                      let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+                      let width = properties[kCGImagePropertyPixelWidth] as? Int,
+                      let height = properties[kCGImagePropertyPixelHeight] as? Int,
+                      width > 0, height > 0, Double(width) * Double(height) <= 100_000_000,
+                      let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+                      let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
+                    throw ImportFailure(message: "The repository’s matching still couldn’t be decoded as an image.")
+                }
+                try png.write(to: staging.appendingPathComponent("wallpaper.png"))
+            }
             let handle = try FileHandle(forReadingFrom: local)
             defer { try? handle.close() }
             var hash = SHA256()
-            while let data = try handle.read(upToCount: 1024 * 1024), !data.isEmpty { hash.update(data: data) }
+            while let data = try handle.read(upToCount: 1024 * 1024), !data.isEmpty {
+                try Task.checkCancellation(); hash.update(data: data)
+            }
             let id = hash.finalize().map { String(format: "%02x", $0) }.joined()
             let bytes = (try fm.attributesOfItem(atPath: local.path)[.size] as? NSNumber)?.int64Value ?? 0
             let scene = Scene(id: id, name: source.deletingPathExtension().lastPathComponent,
                               movieName: movieName, duration: duration,
-                              stillTime: max(0, actual.seconds), bytes: bytes)
+                              stillTime: max(0, actual.seconds), bytes: bytes, source: origin)
             let destination = folder(scene)
+            try Task.checkCancellation()
             if !fm.fileExists(atPath: destination.path) { try fm.moveItem(at: staging, to: destination) }
+            else if poster != nil, !fm.fileExists(atPath: destination.appendingPathComponent("wallpaper.png").path) {
+                // A previously imported local video can gain its repository's matching poster.
+                try fm.copyItem(at: staging.appendingPathComponent("wallpaper.png"), to: destination.appendingPathComponent("wallpaper.png"))
+            }
             return scene
         } catch {
             throw ImportFailure(message: "\(source.lastPathComponent): \(error.localizedDescription)\nTry exporting as H.264 or HEVC in a .mov/.mp4 file using QuickTime Player → File → Export As. Renaming the extension won’t convert a codec.")

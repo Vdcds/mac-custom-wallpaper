@@ -10,7 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var observers: [NSObjectProtocol] = []
     private var pendingURLs: [URL] = []
     let arguments = CommandLine.arguments
-    var testMode: Bool { arguments.contains("--self-test") }
+    var testMode: Bool { arguments.contains("--self-test") || arguments.contains("--repository-self-test") }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let root: URL
@@ -70,7 +70,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         })
         model.start()
-        if testMode {
+        if arguments.contains("--repository-self-test") {
+            Task { await runRepositoryVerification(model: model) }
+        } else if testMode {
             Task { await runVerification(model: model, arguments: arguments) }
         } else {
             if model.state.scenes.isEmpty || arguments.contains("--show-library") { showLibrary() }

@@ -1,0 +1,27 @@
+{
+  "count" : 18,
+  "flightCommit" : "9cccd38dee16b051071f3b5b786abcf692034e1a",
+  "omarchyCommit" : "778f827bae76525864850d1f6e0a7a9aac33d1b7",
+  "passed" : [
+    "Flight 15 repository discovers all twelve intro\/still pairs",
+    "upstream footage notice is discovered",
+    "a second real repository resolves a branch\/folder link and pairs its videos",
+    "a real image-only theme reports still images without pretending it has video",
+    "real repository media downloads and imports through the app model",
+    "scene preserves its pinned repository provenance",
+    "imported video bytes match the pinned Git blob without transcoding",
+    "matching original poster is retained at source resolution",
+    "a video imported locally can gain its matching repository poster without a duplicate",
+    "media notice and license are saved locally",
+    "another Omarchy theme imports into the same library",
+    "reimporting repository media deduplicates without losing provenance",
+    "one undecodable file reports a failure while retaining other completed imports",
+    "cancelling leaves completed imports intact and releases the busy state",
+    "repository scene starts real muted video on the desktop",
+    "repository video settles to its paired still and releases decoding",
+    "repository library, chosen scene, and source links persist",
+    "a fresh app model restores the repository selection"
+  ],
+  "physicalLidTested" : false,
+  "physicalLockTested" : false
+}
