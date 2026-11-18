@@ -9,6 +9,7 @@ final class DesktopWindow: NSWindow {
 @MainActor
 final class WallpaperEngine {
     struct Surface {
+        let displayID: CGDirectDisplayID
         let window: DesktopWindow
         let image: CALayer
         let video: AVPlayerLayer
@@ -18,6 +19,7 @@ final class WallpaperEngine {
     private(set) var phase = "Stopped"
     private var currentImage: CGImage?
     private var pendingImage: CGImage?
+    private var pendingStillURL: URL?
     private var endObserver: NSObjectProtocol?
     private var failureObserver: NSObjectProtocol?
     private var boundary: Any?
@@ -27,6 +29,7 @@ final class WallpaperEngine {
     private var generation = UUID()
     var onChange: ((String) -> Void)?
     var onError: ((String) -> Void)?
+    var onStillReady: ((URL) -> Void)?
     var decoderReleased: Bool { player == nil && surfaces.allSatisfy { $0.video.player == nil } }
 
     private func loadStill(_ url: URL) throws -> CGImage {
@@ -42,14 +45,22 @@ final class WallpaperEngine {
         releasePlayer()
         currentImage = image
         rebuildScreens()
+        onStillReady?(url)
         setPhase("Still · ready for next wake")
     }
 
     func rebuildScreens() {
         guard currentImage != nil else { return }
-        // Screen/Space changes retain playback position; they never start an intro.
-        surfaces.forEach { $0.window.close() }
-        surfaces = NSScreen.screens.map { screen in
+        let screens = NSScreen.screens
+        let existing = Dictionary(uniqueKeysWithValues: surfaces.map { ($0.displayID, $0) })
+        var remaining = existing
+        surfaces = screens.map { screen in
+            let id = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as! NSNumber).uint32Value
+            if let surface = remaining.removeValue(forKey: id) {
+                surface.window.setFrame(screen.frame, display: true)
+                configure(surface, screen: screen)
+                return surface
+            }
             let window = DesktopWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
             window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)) + 1)
             window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
@@ -64,19 +75,34 @@ final class WallpaperEngine {
             image.contents = currentImage
             image.contentsGravity = .resizeAspectFill
             image.masksToBounds = true
-            image.frame = view.bounds
             let video = AVPlayerLayer(player: player)
             video.videoGravity = .resizeAspectFill
-            video.frame = view.bounds
             video.opacity = 0
             view.layer?.addSublayer(image)
             view.layer?.addSublayer(video)
             window.contentView = view
+            let surface = Surface(displayID: id, window: window, image: image, video: video)
+            configure(surface, screen: screen)
             window.setFrame(screen.frame, display: true)
             window.orderFrontRegardless()
-            return Surface(window: window, image: image, video: video)
+            return surface
         }
+        remaining.values.forEach { $0.window.close() }
         observeLayers()
+    }
+
+    private func configure(_ surface: Surface, screen: NSScreen) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        let bounds = NSRect(origin: .zero, size: screen.frame.size)
+        surface.image.contents = currentImage
+        surface.image.frame = bounds
+        surface.video.frame = bounds
+        surface.image.contentsScale = screen.backingScaleFactor
+        surface.video.contentsScale = screen.backingScaleFactor
+        surface.image.minificationFilter = .trilinear
+        surface.image.magnificationFilter = .linear
+        CATransaction.commit()
     }
 
     private func observeLayers() {
@@ -97,6 +123,7 @@ final class WallpaperEngine {
         let finalImage = try loadStill(disk.still(scene))
         releasePlayer()
         pendingImage = finalImage
+        pendingStillURL = disk.still(scene)
         // Keep the existing wallpaper visible while the new intro is prepared.
         // Its ending is installed only when that intro finishes or is suspended.
         if currentImage == nil {
@@ -168,6 +195,7 @@ final class WallpaperEngine {
         CATransaction.setDisableActions(true)
         surfaces.forEach { $0.image.contents = pendingImage }
         CATransaction.commit()
+        if let pendingStillURL { onStillReady?(pendingStillURL) }
     }
     private func fail(_ token: UUID, message: String) {
         guard token == generation else { return }
@@ -184,12 +212,13 @@ final class WallpaperEngine {
         surfaces.forEach { $0.window.close() }
         surfaces.removeAll()
         currentImage = nil
-        setPhase("Stopped · original wallpaper visible")
+        setPhase("Intro stopped · system wallpaper kept")
     }
     private func setPhase(_ text: String) { phase = text; onChange?(text) }
     private func releasePlayer() {
         generation = UUID()
         pendingImage = nil
+        pendingStillURL = nil
         timeout?.cancel(); timeout = nil
         statusObservation = nil
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }

@@ -31,8 +31,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         pickerItem.keyEquivalentModifierMask = [.command, .shift]
         let fileItem = NSMenuItem(title: "File", action: nil, keyEquivalent: "")
         fileItem.submenu = fileMenu; mainMenu.addItem(fileItem)
-        fileMenu.addItem(withTitle: "Choose Scene…", action: #selector(showPicker), keyEquivalent: "s").target = self
-        fileMenu.items.last?.keyEquivalentModifierMask = [.command, .shift]
         let editMenu = NSMenu(title: "Edit")
         editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
@@ -95,9 +93,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         choose.keyEquivalentModifierMask = [.command, .shift]
         choose.target = self; choose.isEnabled = !model.state.scenes.isEmpty
         menu.addItem(.separator())
-        let toggle = menu.addItem(withTitle: model.state.enabled ? "Stop Wallpaper" : "Resume Wallpaper", action: #selector(toggleWallpaper), keyEquivalent: "")
+        let toggle = menu.addItem(withTitle: model.state.enabled ? "Stop Wake Replays" : "Resume Wake Replays", action: #selector(toggleWallpaper), keyEquivalent: "")
         toggle.target = self; toggle.isEnabled = model.selected != nil
         menu.addItem(.separator())
+        let restore = menu.addItem(withTitle: "Restore Previous Wallpaper", action: #selector(restoreWallpaper), keyEquivalent: "")
+        restore.target = self; restore.isEnabled = model.systemWallpaper.hasPrevious
         menu.addItem(withTitle: "Quit Wake Scenes", action: #selector(quit), keyEquivalent: "q").target = self
         menu.autoenablesItems = false
         statusItem.menu = menu
@@ -137,6 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         pickerPanel = nil
     }
     @objc func toggleWallpaper() { model.setEnabled(!model.state.enabled) }
+    @objc func restoreWallpaper() { model.restorePreviousWallpaper() }
     @objc func quit() { NSApp.terminate(nil) }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showLibrary(); return true

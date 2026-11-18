@@ -2,7 +2,7 @@
 
 Verified on November 18, 2026, on an Apple silicon Mac running macOS 27.2.1 with Swift 6.4.2 and Apple's command-line SDKs. Full Xcode was not installed.
 
-The final run of `./scripts/verify.sh` passed 29 checks for each of two fixtures. The H.264 MP4 has four seconds of picture and eight seconds of audio. The portrait HEVC MOV has four seconds of picture. Both settle near the four-second video endpoint.
+The final run of `./scripts/verify.sh` passed 33 checks for each of two fixtures. The H.264 MP4 has four seconds of picture and eight seconds of audio. The portrait HEVC MOV has four seconds of picture. Both settle near the four-second video endpoint.
 
 The retained machine-readable reports are checked in:
 
@@ -11,11 +11,13 @@ The retained machine-readable reports are checked in:
 
 Run the verification script to regenerate reports and runtime logs in the ignored local artifacts directory.
 
-The checks use the running native app, its import code, AVPlayer, and actual desktop windows. They confirm advancing playback, decoded frames ready for display, muted audio, and retained still layers after the player and item are released. They also cover corrupt imports, content deduplication, persisted selection and stop state, screen-window rebuilds, wallpaper window levels, and unchanged system wallpaper URLs.
+The checks use the running native app, its import code, AVPlayer, and actual desktop windows. They confirm advancing playback, decoded frames ready for display, muted audio, and retained still layers after the player and item are released. They also cover corrupt imports, content deduplication, persisted selection and stop state, screen-window rebuilds, wallpaper window levels, native system-wallpaper installation, persistence after closing all overlay windows, explicit restoration, retained window identities, and Retina backing scales.
 
 Sleep and wake integration checks post NSWorkspace notifications inside the app process. Lock and unlock checks drive the state machine with explicit timestamps and session availability. Those checks establish the app's event handling, not the OS's physical event delivery.
 
 Additional native UI checks confirmed import through NSOpenPanel, scene selection, Replay returning to the still state, a rendered wallpaper window, and selected-scene restoration after a process relaunch. SMAppService registration toggled on and off through the library without an error. The setting was left off. Command-Q exited the app after adding its native application menu.
+
+The native wallpaper update additionally installed the selected Top Down Exhaust poster at 4096×2304. All 12 local Flight 15 scenes received their original high-resolution stills. System Settings showed Show on all Spaces enabled. A read-only inspection of WallpaperAgent's store found the selected image in the shared entry and zero individual Space overrides. Quitting the actual app left that native wallpaper installed with no WakeScenes process running. Live Space-navigation automation was unavailable, so no visual transition test is claimed.
 
 The app's local code signature passed `codesign --verify --deep --strict`. The generated Apple silicon bundle is about 5.5 MB. No sample footage or codec library ships inside it.
 
@@ -33,7 +35,7 @@ These checks remain unperformed. Use a short clip with visible motion and a reco
 2. Lock the Mac and let its display sleep. Wake it but wait at the lock screen longer than the clip. Unlock and confirm that the full intro is still shown once. Lock and unlock without display sleep and confirm that it does not replay.
 3. Switch between Spaces and a full-screen app. Return to the desktop and confirm that the still remains beneath icons. Click a desktop icon to confirm that the wallpaper does not intercept input.
 4. Connect and disconnect an external display while settled, then during Replay. Confirm that each display is filled, playback does not restart, and no black window remains after disconnect.
-5. Stop the wallpaper, repeat sleep and wake, then quit and relaunch. Confirm that the original wallpaper remains visible until you resume.
+5. Stop wake replays, repeat sleep and wake, then quit and relaunch. Confirm that the selected system still remains visible. Use Restore Previous Wallpaper and confirm that the saved previous image returns. Check Show on all Spaces after selecting a different scene or restoring.
 6. Copy the app to Applications and enable Launch at login. Log out and back in. Confirm that the menu-bar app starts with the selected still. Disable the setting afterward if you do not want it enabled.
 
 Physical lid, lock-screen timing, monitor hot-plug, multiple Spaces, and an actual login launch are not claimed as tested.

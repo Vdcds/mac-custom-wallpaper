@@ -29,7 +29,10 @@ struct LibraryDisk {
     var manifest: URL { root.appendingPathComponent("library.json") }
     func folder(_ scene: Scene) -> URL { root.appendingPathComponent(scene.id) }
     func movie(_ scene: Scene) -> URL { folder(scene).appendingPathComponent(scene.movieName) }
-    func still(_ scene: Scene) -> URL { folder(scene).appendingPathComponent("still.png") }
+    func still(_ scene: Scene) -> URL {
+        let original = folder(scene).appendingPathComponent("wallpaper.png")
+        return FileManager.default.fileExists(atPath: original.path) ? original : folder(scene).appendingPathComponent("still.png")
+    }
 
     func read() throws -> LibraryState {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -69,6 +72,7 @@ struct LibraryDisk {
             }
             let generator = AVAssetImageGenerator(asset: asset)
             generator.appliesPreferredTrackTransform = true
+            generator.maximumSize = .zero
             generator.requestedTimeToleranceBefore = .zero
             generator.requestedTimeToleranceAfter = .zero
             // Ask immediately before the end. The actual timestamp returned is

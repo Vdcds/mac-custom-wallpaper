@@ -15,6 +15,7 @@ final class AppModel: ObservableObject {
     @Published var loginNote = ""
     let disk: LibraryDisk
     let engine = WallpaperEngine()
+    let systemWallpaper: SystemWallpaper
     let wake = WakeMonitor()
     private var storageWritable = true
     var selected: Scene? { state.scenes.first { $0.id == state.selectedID } }
@@ -26,6 +27,7 @@ final class AppModel: ObservableObject {
 
     init(root: URL) {
         disk = LibraryDisk(root: root)
+        systemWallpaper = SystemWallpaper(root: root)
         do { state = try disk.read() }
         catch {
             storageWritable = false
@@ -33,6 +35,10 @@ final class AppModel: ObservableObject {
         }
         engine.onChange = { [weak self] in self?.status = $0; self?.onStateChange?() }
         engine.onError = { [weak self] in self?.error = $0 }
+        engine.onStillReady = { [weak self] url in
+            do { try self?.systemWallpaper.install(url) }
+            catch { self?.error = "Couldn’t set the system wallpaper: \(error.localizedDescription)" }
+        }
         wake.onReplay = { [weak self] in
             guard let self, self.state.enabled else { return }; self.replay()
         }
@@ -108,6 +114,17 @@ final class AppModel: ObservableObject {
         do { try FileManager.default.removeItem(at: disk.folder(scene)) }
         catch { self.error = "Scene removed from library, but its files couldn’t be deleted: \(error.localizedDescription)" }
     }
+    func synchronizeWallpaper() {
+        guard state.enabled else { return }
+        do { try systemWallpaper.synchronize() }
+        catch { self.error = "Couldn’t synchronize the system wallpaper: \(error.localizedDescription)" }
+    }
+    func restorePreviousWallpaper() {
+        setEnabled(false)
+        guard !state.enabled else { return }
+        do { try systemWallpaper.restore() }
+        catch { self.error = error.localizedDescription }
+    }
     func refreshLogin() {
         let status = SMAppService.mainApp.status
         loginEnabled = status == .enabled || status == .requiresApproval
@@ -180,12 +197,14 @@ struct LibraryView: View {
             }
             Divider()
             HStack {
-                Toggle("Wallpaper on", isOn: Binding(get: { model.state.enabled }, set: model.setEnabled))
+                Toggle("Replay on wake", isOn: Binding(get: { model.state.enabled }, set: model.setEnabled))
                     .toggleStyle(.switch).disabled(model.selected == nil)
                 Spacer()
                 Text(model.status).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 Button("Replay now") { model.replay() }.disabled(model.selected == nil)
             }
+            Button("Restore previous wallpaper") { model.restorePreviousWallpaper() }
+                .disabled(!model.systemWallpaper.hasPrevious)
             Toggle("Launch at login", isOn: Binding(get: { model.loginEnabled }, set: model.setLogin))
             if !model.loginNote.isEmpty {
                 HStack {
@@ -193,7 +212,7 @@ struct LibraryView: View {
                     Button("Open Settings") { SMAppService.openSystemSettingsLoginItems() }
                 }
             }
-            Text("Replays after system or display sleep, once unlocked. macOS doesn’t reliably identify lid-open wakes. Your system wallpaper stays untouched.")
+            Text("Replays after system or display sleep, once unlocked. macOS doesn’t reliably identify lid-open wakes. The selected still is your system wallpaper, including after quitting.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(24).frame(minWidth: 660, minHeight: 550)

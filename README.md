@@ -28,17 +28,23 @@ To use launch at login, quit the app, copy it to Applications, and open that cop
 
 For the visual scene carousel, choose **Choose Scene** from the menu bar or library. Use the left and right arrow keys to browse, then press Return to play. Click a thumbnail to play it immediately. Escape closes the picker without changing the wallpaper. While Wake Scenes is active, Command-Shift-S opens the picker. The library and picker hide during playback so the desktop is visible.
 
-The first import becomes the selected still. Selecting a scene explicitly plays its intro. Launching or resuming the app restores the still without replaying. The same scene fills every connected display, cropped to fill each screen.
+The first import becomes the selected system wallpaper. Selecting a scene explicitly plays its intro. Launching or resuming the app restores the still without replaying. The same scene fills every connected display, cropped to fill each screen.
 
 Import support depends on the codecs macOS can decode, rather than a fixed extension list. H.264 MP4 and HEVC MOV have been tested. If a file fails, try opening it in QuickTime Player and choosing **File → Export As**. Export an H.264 or HEVC MOV or MP4 copy, then import that copy. The app does not include a converter or promise support for every codec.
 
 Imported videos are copies. Moving or deleting the source does not affect the library. Importing the same bytes again does not add a duplicate. Removing a scene deletes the imported copy and cached still, while preserving the original video.
 
+## Keep the same wallpaper across Spaces
+
+The selected still is installed as your actual macOS system wallpaper. In **System Settings → Wallpaper**, enable **Show on all Spaces** to use it on every desktop and display, including Mission Control thumbnails. macOS can turn this setting off after an application selects a different image, so check it again after choosing another scene.
+
+Desktop windows remain in place during Space changes. They fill the screen and render at its native Retina scale. Original-resolution PNG stills are retained. The local Flight 15 library can use its original lossless high-resolution posters instead of video-compressed ending frames.
+
 ## Stop and quit
 
-Turn off **Wallpaper on**, or choose **Stop Wallpaper** from the menu bar. Your existing wallpaper appears immediately. Use **Quit Wake Scenes** to close the app completely. Closing the library window keeps the menu-bar app running.
+Turn off **Replay on wake**, or choose **Stop Wake Replays** from the menu bar to stop animation. The selected system wallpaper stays in place. Quitting also keeps it. Closing the library window keeps the menu-bar app running.
 
-The app never changes your system wallpaper, desktop icons, or unrelated preferences. Its desktop windows ignore mouse clicks.
+Use **Restore Previous Wallpaper** to stop replays and restore the wallpaper saved before the first native install. A local backup retains its image and display options. Wallpaper assets live outside scene folders so removing an imported scene does not delete the image macOS uses. The app does not change desktop icons or unrelated preferences.
 
 ## Verify the app
 

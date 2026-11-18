@@ -63,7 +63,13 @@ func runVerification(model: AppModel, arguments: [String]) async {
         let settled = await wait(scene.duration + 10) { model.engine.decoderReleased }
         try require(settled && model.engine.phase.hasPrefix("Still"), "intro ends on still and releases player, item, and layers")
         try require(model.engine.surfaces.allSatisfy { $0.image.contents != nil && $0.video.opacity == 0 }, "cached still remains visible after decoder release")
+        let windowsBefore = model.engine.surfaces.map { $0.window.windowNumber }
         model.engine.rebuildScreens()
+        try require(model.engine.surfaces.map { $0.window.windowNumber } == windowsBefore,
+                    "display reconciliation reuses windows instead of exposing another wallpaper")
+        try require(model.engine.surfaces.allSatisfy { surface in
+            NSScreen.screens.first { ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == surface.displayID }?.backingScaleFactor == surface.image.contentsScale
+        }, "still layers render at each display's native Retina scale")
         try require(model.engine.decoderReleased && model.engine.surfaces.count == NSScreen.screens.count, "screen rebuild retains still without starting playback")
 
         if let index = arguments.firstIndex(of: "--second-fixture"), arguments.count > index + 1 {
@@ -108,7 +114,7 @@ func runVerification(model: AppModel, arguments: [String]) async {
         model.setEnabled(false)
         for name in [NSWorkspace.willSleepNotification, NSWorkspace.didWakeNotification] { center.post(name: name, object: nil) }
         await pause(1.8)
-        try require(!model.state.enabled && model.engine.surfaces.isEmpty && model.replayCount == baseline + 1, "stop survives wake and reveals original wallpaper")
+        try require(!model.state.enabled && model.engine.surfaces.isEmpty && model.replayCount == baseline + 1, "stop survives wake and keeps the selected system wallpaper")
         let stopped = try model.disk.read()
         try require(!stopped.enabled, "stopped preference persists on disk")
         model.setEnabled(true)
@@ -125,8 +131,22 @@ func runVerification(model: AppModel, arguments: [String]) async {
         try require(gate.consume(now: now.addingTimeInterval(11), sessionAvailable: true), "unlock consumes deferred cycle once")
         gate.accept(.unlock, now: now.addingTimeInterval(12))
         try require(!gate.consume(now: now.addingTimeInterval(20), sessionAvailable: true), "unlock alone never replays")
+        let nativeURL = model.systemWallpaper.installedURL
+        let nativeInstalled = await wait(4) {
+            nativeURL != nil && NSScreen.screens.allSatisfy { NSWorkspace.shared.desktopImageURL(for: $0)?.standardizedFileURL == nativeURL?.standardizedFileURL }
+        }
+        if !nativeInstalled {
+            print("NATIVE EXPECTED: \(nativeURL?.absoluteString ?? "nil")")
+            print("NATIVE ACTUAL: \(NSScreen.screens.map { NSWorkspace.shared.desktopImageURL(for: $0)?.absoluteString ?? "nil" })")
+            print("NATIVE ERROR: \(model.error ?? "none")")
+        }
+        try require(nativeInstalled, "selected still is installed as the actual native system wallpaper")
         model.engine.stop()
-        try require(NSScreen.screens.map { NSWorkspace.shared.desktopImageURL(for: $0) } == originals, "system wallpaper URLs are unchanged")
+        try require(NSScreen.screens.allSatisfy { NSWorkspace.shared.desktopImageURL(for: $0)?.standardizedFileURL == nativeURL?.standardizedFileURL },
+                    "native wallpaper persists after all overlay windows are closed")
+        try model.systemWallpaper.restore()
+        let originalRestored = await wait(4) { NSScreen.screens.map { NSWorkspace.shared.desktopImageURL(for: $0) } == originals }
+        try require(originalRestored, "explicit restore brings back the saved previous wallpaper")
         let report: [String: Any] = ["passed": checks, "count": checks.count, "screens": NSScreen.screens.count,
                                     "duration": scene.duration, "stillTime": scene.stillTime,
                                     "physicalLidTested": false, "physicalLockTested": false]
@@ -139,6 +159,7 @@ func runVerification(model: AppModel, arguments: [String]) async {
         fputs("\(error.localizedDescription)\n", stderr)
         try? Data(error.localizedDescription.utf8).write(to: root.appendingPathComponent("FAILED.txt"))
         model.shutdown()
+        try? model.systemWallpaper.restore()
         exit(1)
     }
 }

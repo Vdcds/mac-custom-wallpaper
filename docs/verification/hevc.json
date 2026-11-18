@@ -1,5 +1,5 @@
 {
-  "count" : 29,
+  "count" : 33,
   "duration" : 4,
   "passed" : [
     "real app import creates one local scene",
@@ -17,12 +17,14 @@
     "wallpaper windows sit below icons and pass through clicks",
     "intro ends on still and releases player, item, and layers",
     "cached still remains visible after decoder release",
+    "display reconciliation reuses windows instead of exposing another wallpaper",
+    "still layers render at each display's native Retina scale",
     "screen rebuild retains still without starting playback",
     "switching scenes keeps the previous still visible while the intro loads",
     "switching scenes installs the new ending only after playback and releases its player",
     "overlapping injected wake notifications cause exactly one replay",
     "duplicate wake and ordinary session activation do not replay",
-    "stop survives wake and reveals original wallpaper",
+    "stop survives wake and keeps the selected system wallpaper",
     "stopped preference persists on disk",
     "resume restores still without an unsolicited intro",
     "locked wake remains pending",
@@ -30,7 +32,9 @@
     "unlock waits for presentation debounce",
     "unlock consumes deferred cycle once",
     "unlock alone never replays",
-    "system wallpaper URLs are unchanged"
+    "selected still is installed as the actual native system wallpaper",
+    "native wallpaper persists after all overlay windows are closed",
+    "explicit restore brings back the saved previous wallpaper"
   ],
   "physicalLidTested" : false,
   "physicalLockTested" : false,

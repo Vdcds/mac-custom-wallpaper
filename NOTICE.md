@@ -6,4 +6,4 @@ The intro-to-still experience is inspired by [yamz8/omarchy-flight-15-theme](htt
 
 Any Flight 15 footage visible in screenshots or demonstration recordings retains its original rights and is excluded from this repository's MIT license. Wake Scenes does not claim authorship of that footage or affiliation with SpaceX or the upstream theme's author. User-imported media is not included with the application.
 
-The working-app demonstration is recorded with [Tuck](https://tuckapp.wtf).
+Demonstration recordings retain the original media credits above.
