@@ -1,5 +1,5 @@
 {
-  "count" : 33,
+  "count" : 36,
   "duration" : 4,
   "passed" : [
     "real app import creates one local scene",
@@ -22,6 +22,9 @@
     "screen rebuild retains still without starting playback",
     "switching scenes keeps the previous still visible while the intro loads",
     "switching scenes installs the new ending only after playback and releases its player",
+    "locking during playback settles to a still and waits for authentication",
+    "a lock-only successful unlock starts real muted video playback",
+    "overlapping unlock and wake signals do not replay a second time",
     "overlapping injected wake notifications cause exactly one replay",
     "duplicate wake and ordinary session activation do not replay",
     "stop survives wake and keeps the selected system wallpaper",

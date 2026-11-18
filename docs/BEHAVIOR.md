@@ -18,13 +18,17 @@ The default library is `~/Library/Application Support/Wake Scenes/`. Its `librar
 
 The optional `--library /absolute/path` argument selects an isolated library for verification. Import runs off the main thread and processes one batch at a time. The app makes no network requests.
 
-## Wake events
+## Wake and authentication events
 
-A public NSWorkspace system-sleep or display-sleep notification arms a replay. Wake and screen-wake notifications allow that pending cycle to proceed after a short debounce. Overlapping wake events consume one pending cycle. An unlock or session activation without a sleep event cannot arm playback.
+A system sleep, display sleep, lock, or session deactivation arms one replay. Unlock and session activation allow that pending cycle to proceed after a short debounce, once the console is available and unlocked. Overlapping wake, active, and unlock notifications consume the same cycle. An unpaired wake or unlock notification cannot start another intro.
 
-The app checks the current console session before playback. It supplements public workspace session notifications with loginwindow's distributed lock and unlock notifications and the session dictionary's lock flag. Those lock indicators are undocumented OS behavior, so physical unlock timing requires checking on the target macOS release. The app does not use a privileged helper or access the lock screen.
+A lock immediately settles any playing intro to the still and releases its player. A lock followed by unlock replays even if the display never slept. A successful unlock also clears stale sleeping and inactive flags, because authentication cannot finish in an asleep session. No password event is intercepted or inspected. Failed authentication leaves the cycle locked. The same behavior applies to Touch ID and other successful macOS unlock methods.
 
-macOS does not provide a dependable public distinction between opening a lid, waking by keyboard, and other system wakes. Display sleep also arms a replay, including on external displays. The app makes no claim to detect a physical lid opening precisely. A screen saver or lock that does not sleep the display does not by itself trigger a replay.
+The app checks the current console session before playback. It supplements public NSWorkspace notifications with loginwindow's distributed lock and unlock notifications and the session dictionary's lock flag. A short timer runs only while a cycle is pending. If it observes a locked-to-unlocked dictionary transition, it can recover a missed unlock notification. A single early unlocked snapshot cannot cancel a lock notification before loginwindow finishes locking. Launching an already unlocked app restores the still without replaying.
+
+Those lock indicators are undocumented OS behavior, so physical unlock timing still requires checking on the target macOS release. The app does not use a privileged helper or access password fields. macOS owns the lock screen and may blur or decorate the system still. Pre-boot FileVault appearance and logins completed before the app starts are not controlled by this app.
+
+macOS does not provide a dependable public distinction between opening a lid, waking by keyboard, and other system wakes. Display sleep can also arm replay without a lock. Locking and unlocking without display sleep now arms replay as well.
 
 Display changes reconcile desktop windows by display ID, preserving existing windows and playback position. Space changes retain those same windows and synchronize the native image without replaying. Those changes do not start a replay. The windows join all Spaces and stay beneath full-screen app content. One scene appears on all displays. The app does not edit WallpaperAgent's private preference store. Native sharing across inactive Spaces uses the system's Show on all Spaces setting. NSWorkspace changes can disable sharing when selecting a different image, so enable it again in Wallpaper settings if needed. Physical monitor hot-plug and animated Space transitions still need the manual checks in VERIFICATION.md.
 

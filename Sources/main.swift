@@ -93,7 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         choose.keyEquivalentModifierMask = [.command, .shift]
         choose.target = self; choose.isEnabled = !model.state.scenes.isEmpty
         menu.addItem(.separator())
-        let toggle = menu.addItem(withTitle: model.state.enabled ? "Stop Wake Replays" : "Resume Wake Replays", action: #selector(toggleWallpaper), keyEquivalent: "")
+        let toggle = menu.addItem(withTitle: model.state.enabled ? "Stop Automatic Replays" : "Resume Automatic Replays", action: #selector(toggleWallpaper), keyEquivalent: "")
         toggle.target = self; toggle.isEnabled = model.selected != nil
         menu.addItem(.separator())
         let restore = menu.addItem(withTitle: "Restore Previous Wallpaper", action: #selector(restoreWallpaper), keyEquivalent: "")

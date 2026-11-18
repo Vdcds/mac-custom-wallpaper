@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 command -v ffmpeg >/dev/null || { echo 'Verification fixtures require ffmpeg (the app does not).'; exit 1; }
+./scripts/test-lifecycle.sh
 ./scripts/build.sh
 RUN="$PWD/artifacts/verification-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$RUN"

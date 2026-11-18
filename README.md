@@ -1,6 +1,6 @@
 # Wake Scenes
 
-A small native macOS menu-bar app. Import a video, choose a scene, and get one muted intro after wake, followed by its final still.
+A small native macOS menu-bar app. Import a video, choose a scene, and get one muted intro after unlocking or waking your Mac, followed by its final still.
 
 This is an early local build for macOS 14+. Physical lid-open and unlock timing still need testing on more Macs. No notarized download is available yet.
 
@@ -34,6 +34,12 @@ Import support depends on the codecs macOS can decode, rather than a fixed exten
 
 Imported videos are copies. Moving or deleting the source does not affect the library. Importing the same bytes again does not add a duplicate. Removing a scene deletes the imported copy and cached still, while preserving the original video.
 
+## Lock and unlock
+
+While locked, the selected still remains installed as the system wallpaper. After a successful unlock, the app waits briefly for the lock screen to clear and plays the selected intro once. Touch ID works the same way as a password. Locking during playback stops the intro and settles on the still. An unsuccessful authentication does not start playback.
+
+The app listens for session unlock. It does not read or validate passwords. macOS controls lock-screen appearance, including blur and overlays. The pre-boot FileVault screen and a login that finishes before the app launches are outside this running-session feature.
+
 ## Keep the same wallpaper across Spaces
 
 The selected still is installed as your actual macOS system wallpaper. In **System Settings → Wallpaper**, enable **Show on all Spaces** to use it on every desktop and display, including Mission Control thumbnails. macOS can turn this setting off after an application selects a different image, so check it again after choosing another scene.
@@ -42,7 +48,7 @@ Desktop windows remain in place during Space changes. They fill the screen and r
 
 ## Stop and quit
 
-Turn off **Replay on wake**, or choose **Stop Wake Replays** from the menu bar to stop animation. The selected system wallpaper stays in place. Quitting also keeps it. Closing the library window keeps the menu-bar app running.
+Turn off **Wake & unlock replays**, or choose **Stop Automatic Replays** from the menu bar to stop animation. The selected system wallpaper stays in place. Quitting also keeps it. Closing the library window keeps the menu-bar app running.
 
 Use **Restore Previous Wallpaper** to stop replays and restore the wallpaper saved before the first native install. A local backup retains its image and display options. Wallpaper assets live outside scene folders so removing an imported scene does not delete the image macOS uses. The app does not change desktop icons or unrelated preferences.
 
@@ -54,7 +60,7 @@ Run the app verification from a logged-in, unlocked graphical session. `ffmpeg` 
 ./scripts/verify.sh
 ```
 
-The script builds the app and runs H.264 and portrait HEVC tests in separate libraries under `artifacts/`. Each run writes `run.log` and `library/verification.json`. It posts synthetic sleep and wake notifications inside the test process; it does not sleep or lock your Mac.
+`./scripts/test-lifecycle.sh` runs 13 focused event-state checks without changing the desktop. The full script runs those checks, builds the app, and runs H.264 and portrait HEVC tests in separate libraries under `artifacts/`. Each run writes `run.log` and `library/verification.json`. It posts synthetic sleep and wake notifications inside the test process; it does not sleep or lock your Mac.
 
 See [verification results and remaining manual tests](docs/VERIFICATION.md) and [lifecycle behavior and storage](docs/BEHAVIOR.md).
 

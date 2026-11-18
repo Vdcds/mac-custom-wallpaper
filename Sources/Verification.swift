@@ -99,6 +99,25 @@ func runVerification(model: AppModel, arguments: [String]) async {
             model.start()
         }
 
+        // Exercise the same lock/unlock receive path without locking the Mac
+        // or sending global loginwindow notifications to unrelated applications.
+        model.replay()
+        _ = await wait(10) { model.engine.player?.rate ?? 0 > 0 }
+        let beforeLock = model.replayCount
+        model.wake.receive(.lock, name: "verification lock")
+        await pause(1.1)
+        try require(model.engine.decoderReleased && model.replayCount == beforeLock,
+                    "locking during playback settles to a still and waits for authentication")
+        model.wake.receive(.unlock, name: "verification unlock")
+        let unlocked = await wait(3) { model.replayCount == beforeLock + 1 && (model.engine.player?.rate ?? 0) > 0 }
+        try require(unlocked, "a lock-only successful unlock starts real muted video playback")
+        model.wake.receive(.unlock, name: "verification duplicate unlock")
+        model.wake.receive(.active, name: "verification session active")
+        model.wake.receive(.screenWake, name: "verification duplicate screen wake")
+        await pause(1.6)
+        try require(model.replayCount == beforeLock + 1, "overlapping unlock and wake signals do not replay a second time")
+        model.engine.settle()
+
         // Drive the actual subscribed notification path without sleeping the user's machine.
         let baseline = model.replayCount
         let center = NSWorkspace.shared.notificationCenter

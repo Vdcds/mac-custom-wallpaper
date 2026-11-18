@@ -148,7 +148,7 @@ struct LibraryView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("A little motion.\nA calmer desktop.").font(.system(size: 29, weight: .semibold, design: .rounded))
-                    Text("One intro after wake. Then a quiet still.").foregroundStyle(.secondary)
+                    Text("One intro after unlock. Then a quiet still.").foregroundStyle(.secondary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 12) {
@@ -197,7 +197,7 @@ struct LibraryView: View {
             }
             Divider()
             HStack {
-                Toggle("Replay on wake", isOn: Binding(get: { model.state.enabled }, set: model.setEnabled))
+                Toggle("Wake & unlock replays", isOn: Binding(get: { model.state.enabled }, set: model.setEnabled))
                     .toggleStyle(.switch).disabled(model.selected == nil)
                 Spacer()
                 Text(model.status).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -212,7 +212,7 @@ struct LibraryView: View {
                     Button("Open Settings") { SMAppService.openSystemSettingsLoginItems() }
                 }
             }
-            Text("Replays after system or display sleep, once unlocked. macOS doesn’t reliably identify lid-open wakes. The selected still is your system wallpaper, including after quitting.")
+            Text("Replays once after you unlock or wake this Mac. The system wallpaper remains a still while locked and after quitting.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(24).frame(minWidth: 660, minHeight: 550)
